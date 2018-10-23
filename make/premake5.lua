@@ -25,7 +25,7 @@ solution "libcc"
     editandcontinue "off"
 
     rtti "off"
-    exceptionhandling "off"
+    --exceptionhandling "off"
 
 	configuration "Debug"
 		defines { "_DEBUG" }

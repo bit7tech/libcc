@@ -99,7 +99,7 @@ namespace cc
         template <typename T>
         struct ChoosePolicy<T*>
         {
-            using type = SmallTypedAnyPolicy<T>;
+            using type = SmallTypedAnyPolicy<T*>;
         };
 
         //--------------------------------------------------------------------------------------------------------------
@@ -232,7 +232,7 @@ namespace cc
         template <typename T>
         T& cast()
         {
-            if (m_policy = impl::getAnyPolicy<T>()) throw impl::BadAnyCast();
+            if (m_policy != impl::getAnyPolicy<T>()) throw impl::BadAnyCast();
             T* r = reinterpret_cast<T*>(m_policy->getValue(&m_object));
             return *r;
         }
