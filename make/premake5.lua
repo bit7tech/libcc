@@ -52,6 +52,7 @@ solution "libcc"
             "../src",
             "../src/gtest",
             "../include",
+            "../modules/asio/asio/include",
         }
 
         -- Libraries to link to (libraries only have release versions)
@@ -60,6 +61,9 @@ solution "libcc"
 
         -- Defines to make
         defines {
+            "ASIO_STANDALONE",
+            "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS",
+            "_WIN32_WINNT=0x0501",
         }
 
         -- Where to find the libs
