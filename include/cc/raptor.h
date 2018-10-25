@@ -513,16 +513,9 @@ namespace cc
     {
     public:
         template <class T>
-        void push(const T& item)
-        {
-            const void* p((void *)&item);
-            localPush(p);
-        }
-
-        template <class T>
         void push(T&& item)
         {
-            const void* p((void *)&item);
+            void* p((void *)&item);
             localPush(p);
         }
 
@@ -536,7 +529,7 @@ namespace cc
         virtual bool empty() const = 0;
 
     protected:
-        virtual void localPush(const void* p) = 0;
+        virtual void localPush(void* p) = 0;
         virtual bool localPop(void* p) = 0;
     };
 
@@ -575,7 +568,7 @@ namespace cc
         //! queue with no consumption can cause a deadlock.  Use tryPush() instead to use a non-blocking version.
         //!
         //! @param  value   The value to push on to the buffer.
-        void push(const T& value);
+        void push(T&& value);
 
         //! Pop a value off the ring buffer.
         //!
@@ -592,13 +585,13 @@ namespace cc
         //!
         //! @param  value   The value to push on to the queue.
         //! @return         Returns true if the value was able to be pushed on the queue.
-        bool tryPush(const T& value);
+        bool tryPush(T&& value);
 
     protected:
-        void localPush(const void *p) override
+        void localPush(void *p) override
         {
-            const T& value = *(const T *)p;
-            push(value);
+            T& value = *(T *)p;
+            push(std::move(value));
         }
 
         bool localPop(void *p) override
@@ -656,13 +649,23 @@ namespace cc
         }
 
         template <typename T>
-        void push(const T& value)
+        void push(T&& value)
         {
             assert(!m_fifos.empty());
             assert(!m_isInput);
-            for (auto& fifo : m_fifos)
+
+            if (m_fifos.size() == 1)
             {
-                fifo->push(value);
+                m_fifos[0]->push(std::move(value));
+            }
+            else
+            {
+                // #todo: We can move one of them and copy the others.
+                for (auto& fifo : m_fifos)
+                {
+                    std::remove_reference<T>::type t = value;
+                    fifo->push(std::move(t));
+                }
             }
         }
 
@@ -782,10 +785,10 @@ namespace cc
         bool isInput() const override { return false; }
 
         template <typename T>
-        void push(const T& t)
+        void push(T&& t)
         {
             assert(m_ports.size() == 1);
-            m_ports.begin()->second.push(t);
+            m_ports.begin()->second.push(std::forward<T>(t));
         }
     };
 
@@ -1025,7 +1028,7 @@ namespace cc
     //------------------------------------------------------------------------------------------------------------------
 
     template <typename T> inline
-        bool DataQueue<T>::tryPush(const T& value)
+        bool DataQueue<T>::tryPush(T&& value)
     {
         size_t currentWriteIndex = m_write;
         if (realIndex(currentWriteIndex + 1) == realIndex(m_read))
@@ -1068,7 +1071,7 @@ namespace cc
             {
                 // The value was retrieved atomically from the queue.
                 m_count.fetch_sub(1);
-                outElem = *p;
+                outElem = std::move(*p);
                 return true;
             }
         } while (1);
@@ -1077,9 +1080,9 @@ namespace cc
     //------------------------------------------------------------------------------------------------------------------
 
     template <typename T> inline
-        void DataQueue<T>::push(const T& value)
+        void DataQueue<T>::push(T&& value)
     {
-        while (!tryPush(value));
+        while (!tryPush(std::move(value)));
     }
 
     //------------------------------------------------------------------------------------------------------------------
