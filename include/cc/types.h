@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cc/platform.h>
 
 namespace cc
 {
